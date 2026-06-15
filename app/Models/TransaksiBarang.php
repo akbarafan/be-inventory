@@ -13,6 +13,8 @@ class TransaksiBarang extends Model
         'user_id',
         'jenis',
         'jumlah',
+        'lokasi_asal_id',
+        'lokasi_tujuan_id',
         'keterangan',
         'tanggal'
     ];
@@ -35,5 +37,11 @@ class TransaksiBarang extends Model
     public function lokasiTujuan()
     {
         return $this->belongsTo(Lokasi::class, 'lokasi_tujuan_id');
+    }
+
+    public function barangItems()
+    {
+        return $this->belongsToMany(BarangItem::class, 'barang_item_transaksi', 'transaksi_id', 'barang_item_id')
+            ->withPivot('jenis');
     }
 }

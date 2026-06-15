@@ -35,7 +35,9 @@ class BarangExport implements
         $query = Barang::with(['kategori', 'barangLokasi.lokasi'])->orderBy('kode_barang');
 
         if ($this->kondisi && $this->kondisi !== 'semua') {
-            $query->where('kondisi', $this->kondisi);
+            $query->whereHas('barangItems', function ($q) {
+                $q->where('kondisi', $this->kondisi)->where('status', 'aktif');
+            });
         }
         if ($this->kategori_id) {
             $query->where('kategori_id', $this->kategori_id);
@@ -78,7 +80,10 @@ class BarangExport implements
             $barang->nama_barang,
             $barang->kategori?->nama_kategori ?? '-',
             $barang->barangLokasi->map(fn($bl) => $bl->lokasi?->nama_lokasi . ': ' . $bl->jumlah)->implode(', ') ?: '-',
-            ucfirst($barang->kondisi),
+            $barang->barangItems->where('status', 'aktif')
+                ->groupBy('kondisi')
+                ->map(fn($items, $k) => ucfirst($k) . ': ' . $items->count())
+                ->implode(', ') ?: '-',
             $barang->jumlah,
             ucfirst(str_replace('_', ' ', $barang->sumber ?? '-')),
             $barang->tanggal_masuk?->format('d/m/Y') ?? '-',

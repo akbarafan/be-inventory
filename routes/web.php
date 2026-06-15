@@ -22,8 +22,9 @@ Route::middleware('auth')->group(function () {
 
     /* Barang */
     Route::resource('barang', BarangController::class);
-    Route::get('/barang/{kode}/qr',     [BarangController::class, 'downloadQR'])->name('barang.qr');
-    Route::get('/barang/{kode}/qr-svg', [BarangController::class, 'qrSvg'])->name('barang.qr.svg');
+    Route::get('/barang/{kode}/qr',       [BarangController::class, 'downloadQR'])->name('barang.qr');
+    Route::get('/barang/{kode}/qr-svg',   [BarangController::class, 'qrSvg'])->name('barang.qr.svg');
+    Route::get('/barang/{barang}/items',  [BarangController::class, 'items'])->name('barang.items');
 
     /* Kategori & Lokasi */
     Route::resource('kategori', KategoriController::class)->except(['show','create','edit']);

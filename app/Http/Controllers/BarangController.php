@@ -2,6 +2,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Barang;
+use App\Models\BarangItem;
 use App\Models\BarangLokasi;
 use App\Models\Kategori;
 use App\Models\Lokasi;
@@ -25,8 +26,17 @@ class BarangController extends Controller
                    ->orWhere('kode_barang','like',"%$q%");
             });
         }
+
+        $query->withCount([
+            'barangItems as baik_count'  => fn($q) => $q->where('kondisi','baik')->where('status','aktif'),
+            'barangItems as rusak_count' => fn($q) => $q->where('kondisi','rusak')->where('status','aktif'),
+            'barangItems as hilang_count'=> fn($q) => $q->where('kondisi','hilang')->where('status','aktif'),
+        ]);
+
         if ($request->filled('kondisi') && $request->kondisi !== 'semua') {
-            $query->where('kondisi', $request->kondisi);
+            $query->whereHas('barangItems', function ($q) use ($request) {
+                $q->where('kondisi', $request->kondisi)->where('status', 'aktif');
+            });
         }
 
         $barang   = $query->latest()->paginate(15)->withQueryString();
@@ -59,6 +69,18 @@ class BarangController extends Controller
             'lokasi_id' => $request->lokasi_awal_id,
             'jumlah'    => $request->jumlah_awal,
         ]);
+
+        // Create individual units
+        for ($i = 0; $i < $request->jumlah_awal; $i++) {
+            BarangItem::create([
+                'barang_id'    => $barang->id,
+                'lokasi_id'    => $request->lokasi_awal_id,
+                'kondisi'      => $request->kondisi ?? 'baik',
+                'sumber'       => $request->sumber ?? 'pembelian',
+                'tanggal_masuk'=> now(),
+                'status'       => 'aktif',
+            ]);
+        }
 
         $barang->load(['kategori','barangLokasi.lokasi']);
 
@@ -111,6 +133,26 @@ class BarangController extends Controller
     public function edit($id)
     {
         return response()->json(Barang::with('barangLokasi')->findOrFail($id));
+    }
+
+    public function items($id)
+    {
+        $items = BarangItem::where('barang_id', $id)
+            ->with('lokasi')
+            ->orderBy('kondisi')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'id'           => $item->id,
+                    'kondisi'      => $item->kondisi,
+                    'lokasi'       => $item->lokasi?->nama_lokasi ?? '-',
+                    'sumber'       => ucfirst(str_replace('_', ' ', $item->sumber)),
+                    'tanggal_masuk'=> $item->tanggal_masuk?->format('d M Y') ?? '-',
+                    'status'       => $item->status,
+                ];
+            });
+
+        return response()->json(['items' => $items]);
     }
 
     public function create()

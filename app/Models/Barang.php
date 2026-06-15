@@ -40,6 +40,11 @@ class Barang extends Model
         return $this->hasMany(BarangLokasi::class);
     }
 
+    public function barangItems()
+    {
+        return $this->hasMany(BarangItem::class);
+    }
+
     public function transaksi()
     {
         return $this->hasMany(TransaksiBarang::class);
@@ -65,7 +70,7 @@ class Barang extends Model
 
     public function getStatusAttribute()
     {
-        return $this->barangLokasi->sum('jumlah') > 0 ? 'Tersedia' : 'Habis';
+        return $this->barangItems()->where('status', 'aktif')->count() > 0 ? 'Tersedia' : 'Habis';
     }
 
     public function getRouteKeyName()

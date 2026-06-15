@@ -103,6 +103,7 @@ html,body { font-family:var(--fs); background:var(--paper); color:var(--ink); he
 .badge-keluar { background:var(--red-pale);   color:var(--red); }
 .badge-pindah { background:var(--amber-pale); color:var(--amber); }
 .badge-scan   { background:var(--green-pale); color:var(--green); }
+.badge-update_kondisi { background:var(--green-pale); color:var(--green); }
 
 /* TABLES */
 .tbl-wrap { overflow-x:auto; }

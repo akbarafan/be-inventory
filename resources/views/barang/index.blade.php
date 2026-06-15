@@ -49,10 +49,18 @@
               <span style="color:var(--ink4)">-</span>
               @endforelse
             </td>
-            <td><span class="badge badge-{{ $b->kondisi==='baik'?'ok':($b->kondisi==='rusak'?'warn':'bad') }}">{{ ucfirst($b->kondisi) }}</span></td>
+            <td style="font-size:11px;line-height:1.6">
+              @if($b->baik_count) <span class="badge badge-ok">Baik: {{ $b->baik_count }}</span> @endif
+              @if($b->rusak_count) <span class="badge badge-warn">Rusak: {{ $b->rusak_count }}</span> @endif
+              @if($b->hilang_count) <span class="badge badge-bad">Hilang: {{ $b->hilang_count }}</span> @endif
+              @if(!$b->baik_count && !$b->rusak_count && !$b->hilang_count) <span style="color:var(--ink4)">-</span> @endif
+            </td>
             <td style="font-weight:500;color:{{ $b->jumlah==0?'var(--red)':($b->jumlah<5?'var(--amber)':'var(--ink)') }}">{{ $b->jumlah }}</td>
             <td>
               <div style="display:flex;gap:4px">
+                <button class="icbtn" title="Detail Item" onclick="showDetail({{ $b->id }})">
+                  <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><circle cx="6.5" cy="3.5" r=".8" fill="currentColor"/><path d="M6.5 6v4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><circle cx="6.5" cy="6.5" r="5.5" stroke="currentColor" stroke-width="1.3"/></svg>
+                </button>
                 <a href="{{ route('barang.qr',$b->kode_barang) }}" class="icbtn" title="Download QR">
                   <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1" y="1" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="8" y="1" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="1" y="8" width="4" height="4" rx="1" stroke="currentColor" stroke-width="1.2"/><rect x="2.2" y="2.2" width="1.6" height="1.6" fill="currentColor"/><rect x="9.2" y="2.2" width="1.6" height="1.6" fill="currentColor"/><rect x="2.2" y="9.2" width="1.6" height="1.6" fill="currentColor"/><rect x="8" y="8" width="1.6" height="1.6" fill="currentColor"/><rect x="11.2" y="8" width="1.6" height="1.6" fill="currentColor"/><rect x="8" y="11.2" width="1.6" height="1.6" fill="currentColor"/><rect x="9.6" y="9.6" width="1.6" height="1.6" fill="currentColor"/></svg>
                 </a>
@@ -142,6 +150,19 @@
   </div>
 </div>
 
+{{-- MODAL DETAIL ITEM --}}
+<div id="detailModal" class="modal-overlay" style="display:none">
+  <div class="modal-box" style="width:520px">
+    <div class="modal-head">
+      <h3 class="modal-title" id="detailTitle">Detail Unit Barang</h3>
+      <button class="modal-close" onclick="document.getElementById('detailModal').style.display='none'">&times;</button>
+    </div>
+    <div id="detailBody" style="padding:4px 0;max-height:400px;overflow-y:auto">
+      <div style="text-align:center;padding:20px;color:var(--ink4);font-size:13px">Memuat...</div>
+    </div>
+  </div>
+</div>
+
 @push('scripts')
 <script>
 const baseUrl = '{{ url('/') }}';
@@ -173,6 +194,48 @@ function editBarang(id,kode,nama,kat,sumber,kondisi,jml,tgl,desc){
 }
 function closeModal(){ document.getElementById('modalOverlay').style.display='none'; }
 document.getElementById('modalOverlay').addEventListener('click',function(e){ if(e.target===this) closeModal(); });
+
+function showDetail(id){
+  var modal = document.getElementById('detailModal');
+  var body = document.getElementById('detailBody');
+  body.innerHTML = '<div style="text-align:center;padding:20px;color:var(--ink4);font-size:13px">Memuat...</div>';
+  modal.style.display = 'flex';
+
+  fetch(baseUrl + '/barang/' + id + '/items')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      var items = data.items;
+      if(!items || items.length===0){
+        body.innerHTML = '<div style="text-align:center;padding:20px;color:var(--ink4);font-size:13px">Belum ada unit barang</div>';
+        return;
+      }
+      var html = '<table style="width:100%;font-size:12px"><thead><tr style="background:var(--paper2)">' +
+        '<th style="padding:7px 8px;text-align:left">#</th>' +
+        '<th style="padding:7px 8px;text-align:left">Kondisi</th>' +
+        '<th style="padding:7px 8px;text-align:left">Lokasi</th>' +
+        '<th style="padding:7px 8px;text-align:left">Sumber</th>' +
+        '<th style="padding:7px 8px;text-align:left">Tgl Masuk</th>' +
+        '<th style="padding:7px 8px;text-align:left">Status</th></tr></thead><tbody>';
+      items.forEach(function(item, idx){
+        var badgeClass = item.kondisi==='baik'?'badge-ok':(item.kondisi==='rusak'?'badge-warn':'badge-bad');
+        var statusClass = item.status==='aktif'?'badge-ok':(item.status==='keluar'?'badge-bad':'badge-warn');
+        html += '<tr>' +
+          '<td style="padding:7px 8px;color:var(--ink4)">' + (idx+1) + '</td>' +
+          '<td style="padding:7px 8px"><span class="badge ' + badgeClass + '">' + item.kondisi.charAt(0).toUpperCase() + item.kondisi.slice(1) + '</span></td>' +
+          '<td style="padding:7px 8px">' + item.lokasi + '</td>' +
+          '<td style="padding:7px 8px">' + item.sumber + '</td>' +
+          '<td style="padding:7px 8px;color:var(--ink3)">' + item.tanggal_masuk + '</td>' +
+          '<td style="padding:7px 8px"><span class="badge ' + statusClass + '">' + item.status.charAt(0).toUpperCase() + item.status.slice(1) + '</span></td></tr>';
+      });
+      html += '</tbody></table>';
+      body.innerHTML = html;
+    })
+    .catch(function(){
+      body.innerHTML = '<div style="text-align:center;padding:20px;color:var(--red);font-size:13px">Gagal memuat data</div>';
+    });
+}
+
+document.getElementById('detailModal').addEventListener('click',function(e){ if(e.target===this) this.style.display='none'; });
 </script>
 @endpush
 @endsection
