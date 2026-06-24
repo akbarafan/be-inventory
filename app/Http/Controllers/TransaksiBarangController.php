@@ -178,10 +178,13 @@ class TransaksiBarangController extends Controller
 
                 // Update cached counts
                 if (in_array($request->jenis, ['keluar', 'pindah'])) {
-                    $barang->decrement('jumlah', $totalJumlah);
                     BarangLokasi::where('barang_id', $barang->id)
                         ->where('lokasi_id', $request->lokasi_asal_id)
                         ->decrement('jumlah', $totalJumlah);
+                }
+
+                if ($request->jenis === 'keluar') {
+                    $barang->decrement('jumlah', $totalJumlah);
                 }
 
                 if ($request->jenis === 'pindah') {
